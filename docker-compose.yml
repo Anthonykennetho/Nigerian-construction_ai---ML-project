@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    volumes:
+      - ./models:/app/src/models
+    container_name: construction_ai_train
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    container_name: construction_ai_api
+    depends_on:
+      - train
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    container_name: construction_ai_streamlit
+    depends_on:
+      - api
+    restart: unless-stopped
+    environment:
+      - API_URL=http://api:8000
+
+volumes:
+  models:
